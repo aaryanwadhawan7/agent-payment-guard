@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agent Payment Guard</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community@32.3.3/styles/ag-grid.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community@32.3.3/styles/ag-theme-quartz.css">
+<style>
+  body { font-family: system-ui, sans-serif; margin: 0; padding: 16px; background: #f6f8fa; }
+  header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  h1 { font-size: 20px; margin: 0; }
+  input { padding: 6px 10px; width: 220px; }
+  #grid { height: 70vh; width: 100%; }
+  button { margin-right: 6px; cursor: pointer; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Agent Payment Guard</h1>
+  <input id="token" type="password" placeholder="Admin token (to approve/reject)">
+</header>
+<div id="grid" class="ag-theme-quartz"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/ag-grid-community@32.3.3/dist/ag-grid-community.min.js"></script>
+<script>
+const COLORS = { allow: "#1a7f37", needs_approval: "#b7791f", block: "#c62828" };
+
+function actionRenderer(p) {
+  const box = document.createElement("span");
+  if (!p.data || p.data.status !== "pending") return box;
+  [["Approve", "approve"], ["Reject", "reject"]].forEach(([label, action]) => {
+    const b = document.createElement("button");
+    b.textContent = label;
+    b.onclick = () => act(p.data.id, action);
+    box.appendChild(b);
+  });
+  return box;
+}
+
+async function act(id, action) {
+  const token = document.getElementById("token").value;
+  const r = await fetch(`/decisions/${id}/${action}`, {
+    method: "POST", headers: { "X-Admin-Token": token }
+  });
+  if (!r.ok) {
+    const e = await r.json().catch(() => ({}));
+    alert(e.detail || "Request failed");
+  }
+  load();
+}
+
+const gridApi = agGrid.createGrid(document.getElementById("grid"), {
+  columnDefs: [
+    { field: "id", width: 80 },
+    { field: "time", width: 200 },
+    { field: "vendor_name", headerName: "Vendor" },
+    { field: "payee_email", headerName: "Payee", flex: 1 },
+    { field: "amount", width: 110 },
+    { field: "verdict", width: 150,
+      cellStyle: p => ({ color: COLORS[p.value] || "inherit", fontWeight: "600" }) },
+    { field: "status", width: 120 },
+    { field: "reasons", flex: 1, valueFormatter: p => (p.value || []).join("; ") },
+    { colId: "actions", headerName: "Action", width: 160, sortable: false, filter: false,
+      valueGetter: p => p.data && p.data.status, cellRenderer: actionRenderer }
+  ],
+  defaultColDef: { sortable: true, filter: true, resizable: true },
+  getRowId: p => String(p.data.id)
+});
+
+async function load() {
+  const r = await fetch("/decisions");
+  gridApi.setGridOption("rowData", await r.json());
+}
+load();
+setInterval(load, 3000);
+</script>
+</body>
+</html>
