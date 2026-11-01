@@ -28,5 +28,6 @@ class Decision(BaseModel):                # final outcome
 class PayResponse(BaseModel):             # what we send back
     decision_id: int
     verdict: Verdict
+    status: str
     reasons: list[str]
     payout_batch_id: Optional[str] = None

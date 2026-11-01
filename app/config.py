@@ -13,3 +13,6 @@ TRUSTED_VENDORS = {"Acme Supplies": os.environ["TRUSTED_VENDOR_EMAIL"]}
 
 MAX_SINGLE_PAYMENT = Decimal("1000")    # above this: always blocked
 APPROVAL_THRESHOLD = Decimal("200")     # above this: a human must approve
+
+ADMIN_TOKEN = os.environ['ADMIN_TOKEN']
+DB_PATH = "guard.db"
