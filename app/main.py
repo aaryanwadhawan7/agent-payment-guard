@@ -2,6 +2,7 @@ import secrets
 from contextlib import asynccontextmanager
 from decimal import Decimal
 from pathlib import Path
+from fastapi.staticfiles import StaticFiles
 
 import httpx
 from fastapi import Depends, FastAPI, Header, HTTPException
@@ -18,6 +19,7 @@ async def lifespan(app: FastAPI):
     yield
 
 app = FastAPI(title="Agent Payment Guard", version="0.2.0", lifespan=lifespan)
+app.mount("/static", StaticFiles(directory=STATIC), name="static")
 
 def require_admin(x_admin_token: str = Header(default="")):
     ok = secrets.compare_digest(x_admin_token.encode(), config.ADMIN_TOKEN.encode())

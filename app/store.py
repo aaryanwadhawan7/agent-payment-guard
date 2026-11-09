@@ -31,6 +31,12 @@ def init_db() -> None:
             status TEXT NOT NULL,
             payout_batch_id TEXT)""")
 
+        c.execute("""CREATE TABLE IF NOT EXISTS vendors (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL UNIQUE COLLATE NOCASE,
+            payee_email TEXT NOT NULL,
+            added_at TEXT NOT NULL)""")
+
 def _to_dict(row: sqlite3.Row) -> dict:
     d = dict(row)
     d["reasons"] = json.loads(d["reasons"])
@@ -75,3 +81,19 @@ def set_status(decision_id: int, status: str, batch_id: Optional[str] = None) ->
     with _db() as c:
         c.execute("UPDATE decisions SET status=?, payout_batch_id=? WHERE id=?",
                   (status, batch_id, decision_id))
+
+def get_vendor(name: str) -> Optional[dict]:
+    with _db() as c:
+        row = c.execute("SELECT * FROM vendors WHERE name=?", (name.strip(),)).fetchone()
+    return dict(row) if row else None
+
+def add_vendor(name: str, payee_email: str) -> bool:
+    """Never overwrites an existing vendor's payee."""
+    with _db() as c:
+        cur = c.execute("INSERT OR IGNORE INTO vendors (name, payee_email, added_at) VALUES (?,?,?)",
+                        (name.strip(), payee_email.strip(), datetime.now(timezone.utc).isoformat()))
+        return cur.rowcount == 1
+
+def list_vendors() -> list[dict]:
+    with _db() as c:
+        return [dict(r) for r in c.execute("SELECT * FROM vendors ORDER BY name").fetchall()]

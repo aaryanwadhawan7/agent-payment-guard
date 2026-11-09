@@ -14,6 +14,7 @@ class PaymentRequest(BaseModel):          # what the AI agent sends us
     amount: Decimal = Field(gt=0, max_digits=10, decimal_places=2)
     currency: str = Field(default="USD", pattern="^[A-Z]{3}$")
     note: Optional[str] = Field(default=None, max_length=500)
+    source_text: Optional[str] = Field(default=None, max_length=8000) 
 
 class RuleResult(BaseModel):              # one rule's opinion
     rule: str
@@ -31,3 +32,7 @@ class PayResponse(BaseModel):             # what we send back
     status: str
     reasons: list[str]
     payout_batch_id: Optional[str] = None
+
+class VendorIn(BaseModel):
+    name: str = Field(min_length=1, max_length=100)
+    payee_email: str = Field(min_length=3, max_length=254)
