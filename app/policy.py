@@ -1,5 +1,6 @@
 from app import config
 from app.models import Decision, PaymentRequest, RuleResult, Verdict
+from typing import Optional
 
 SEVERITY = {Verdict.ALLOW: 0, Verdict.NEEDS_APPROVAL: 1, Verdict.BLOCK: 2}
 
@@ -27,8 +28,8 @@ def check_approval_threshold(req: PaymentRequest) -> RuleResult:
 
 RULES = [check_hard_limit, check_approval_threshold]
 
-def evaluate(req: PaymentRequest) -> Decision:
-    results = [rule(req) for rule in RULES]
+def evaluate(req: PaymentRequest, vendor: Optional[dict] = None, extra=()) -> Decision:
+    results = [check_payee(req, vendor), *[rule(req) for rule in RULES], *extra]
     worst = max(results, key=lambda r: SEVERITY[r.verdict])       # worst verdict wins
     reasons = [r.reason for r in results if r.verdict != Verdict.ALLOW] or ["All checks passed"]
     return Decision(verdict=worst.verdict, reasons=reasons, results=results)

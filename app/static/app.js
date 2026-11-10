@@ -16,11 +16,13 @@ function pillRenderer(p) {
 function actionRenderer(p) {
   const box = document.createElement("span");
   if (!p.data || p.data.status !== "pending") return box;
-  [["Approve", "approve"], ["Reject", "reject"]].forEach(([label, action]) => {
+  [["Approve", "approve", "approve"],
+  ["Approve + trust vendor", "approve?trust=true", "approve"],
+  ["Reject", "reject", "reject"]].forEach(([label, path, cls]) => {
     const b = document.createElement("button");
-    b.className = "btn " + action;
+    b.className = "btn " + cls;
     b.textContent = label;
-    b.onclick = () => act(p.data.id, action);
+    b.onclick = () => act(p.data.id, path);
     box.appendChild(b);
   });
   return box;
@@ -49,7 +51,7 @@ const gridApi = agGrid.createGrid(document.getElementById("grid"), {
     { field: "reasons", flex: 1.4, minWidth: 260,
       valueFormatter: p => (p.value || []).join(" • "),
       tooltipValueGetter: p => (p.value || []).join("\n") },
-    { colId: "actions", headerName: "Action", width: 190, sortable: false, filter: false,
+    { colId: "actions", headerName: "Action", width: 370, sortable: false, filter: false,
       valueGetter: p => p.data && p.data.status, cellRenderer: actionRenderer }
   ],
   defaultColDef: { sortable: true, filter: true, resizable: true },

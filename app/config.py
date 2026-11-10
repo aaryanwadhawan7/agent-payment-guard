@@ -17,5 +17,6 @@ APPROVAL_THRESHOLD = Decimal("200")     # above this: a human must approve
 ADMIN_TOKEN = os.environ['ADMIN_TOKEN']
 DB_PATH = "guard.db"
 
-GROQ_API_KEY = os.getenv('GROQ_API_KEY', "")
+GROQ_KEY = os.getenv("GROQ_API_KEY")
+GROQ_API_KEY = os.getenv('GROQ_API_KEY', GROQ_KEY)
 GROQ_MODEL = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")

@@ -8,14 +8,16 @@ import httpx
 from fastapi import Depends, FastAPI, Header, HTTPException
 from fastapi.responses import FileResponse
 
-from app import config, paypal_client, policy, store
-from app.models import PayResponse, PaymentRequest, Verdict
+from app import config, injection, paypal_client, policy, store
+from app.models import PayResponse, PaymentRequest, Verdict, VendorIn
 
 STATIC = Path(__file__).parent / "static"
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     store.init_db()          # create the table on startup
+    for name, email in config.TRUSTED_VENDORS.items():   # demo vendor seeded once
+        store.add_vendor(name, email)
     yield
 
 app = FastAPI(title="Agent Payment Guard", version="0.2.0", lifespan=lifespan)
@@ -36,7 +38,8 @@ def health():
 
 @app.post("/pay", response_model=PayResponse)
 def pay(req: PaymentRequest):
-    decision = policy.evaluate(req)
+    vendor = store.get_vendor(req.vendor_name)
+    decision = policy.evaluate(req, vendor, extra=[injection.check_source(req)])
     batch_id = None
     if decision.verdict == Verdict.ALLOW:
         try:
@@ -57,7 +60,7 @@ def decisions():
     return store.list_entries()
 
 @app.post("/decisions/{decision_id}/approve", dependencies=[Depends(require_admin)])
-def approve(decision_id: int):
+def approve(decision_id: int, trust: bool = False):
     row = store.get(decision_id)
     if row is None:
         raise HTTPException(status_code=404, detail="Decision not found")
@@ -72,6 +75,8 @@ def approve(decision_id: int):
         store.set_status(decision_id, "pending")      # put it back so it can be retried
         raise HTTPException(status_code=502, detail="PayPal request failed")
     store.set_status(decision_id, "paid", batch_id)
+    if trust:                                            # onboard this vendor
+        store.add_vendor(row["vendor_name"], row["payee_email"])
     return {"decision_id": decision_id, "status": "paid", "payout_batch_id": batch_id}
 
 @app.post("/decisions/{decision_id}/reject", dependencies=[Depends(require_admin)])
@@ -79,3 +84,13 @@ def reject(decision_id: int):
     if not store.reject_pending(decision_id):
         raise HTTPException(status_code=409, detail="Only pending decisions can be rejected")
     return {"decision_id": decision_id, "status": "rejected"}
+
+@app.get("/vendors")
+def vendors():
+    return store.list_vendors()
+
+@app.post("/vendors", dependencies=[Depends(require_admin)])
+def create_vendor(v: VendorIn):
+    if not store.add_vendor(v.name, v.payee_email):
+        raise HTTPException(status_code=409, detail="Vendor already exists")
+    return store.get_vendor(v.name)
