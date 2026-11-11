@@ -37,6 +37,8 @@ def init_db() -> None:
             payee_email TEXT NOT NULL,
             added_at TEXT NOT NULL)""")
 
+        c.execute("CREATE INDEX IF NOT EXISTS idx_decisions_status ON decisions(status)")
+
 def _to_dict(row: sqlite3.Row) -> dict:
     d = dict(row)
     d["reasons"] = json.loads(d["reasons"])
@@ -59,9 +61,9 @@ def get(decision_id: int) -> Optional[dict]:
         row = c.execute("SELECT * FROM decisions WHERE id=?", (decision_id,)).fetchone()
     return _to_dict(row) if row else None
 
-def list_entries() -> list[dict]:
+def list_entries(limit: int = 200) -> list[dict]:
     with _db() as c:
-        rows = c.execute("SELECT * FROM decisions ORDER BY id DESC").fetchall()
+        rows = c.execute("SELECT * FROM decisions ORDER BY id DESC LIMIT ?", (limit,)).fetchall()
     return [_to_dict(r) for r in rows]
 
 def claim_pending(decision_id: int) -> bool:

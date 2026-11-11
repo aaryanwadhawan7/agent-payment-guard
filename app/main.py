@@ -5,11 +5,11 @@ from pathlib import Path
 from fastapi.staticfiles import StaticFiles
 
 import httpx
-from fastapi import Depends, FastAPI, Header, HTTPException
+from fastapi import Cookie, Depends, FastAPI, Header, HTTPException, Response, Query
 from fastapi.responses import FileResponse
 
-from app import config, injection, paypal_client, policy, store
-from app.models import PayResponse, PaymentRequest, Verdict, VendorIn
+from app import auth, config, injection, notify, paypal_client, policy, store, notify
+from app.models import PayResponse, PaymentRequest, Verdict, VendorIn, LoginIn
 
 STATIC = Path(__file__).parent / "static"
 
@@ -22,11 +22,6 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Agent Payment Guard", version="0.2.0", lifespan=lifespan)
 app.mount("/static", StaticFiles(directory=STATIC), name="static")
-
-def require_admin(x_admin_token: str = Header(default="")):
-    ok = secrets.compare_digest(x_admin_token.encode(), config.ADMIN_TOKEN.encode())
-    if not ok:
-        raise HTTPException(status_code=401, detail="Invalid admin token")
 
 @app.get("/")
 def dashboard():
@@ -52,6 +47,8 @@ def pay(req: PaymentRequest):
     else:
         status = "blocked"
     decision_id = store.add(req, decision, status, batch_id)
+    if status == "pending":
+        notify.notify_pending(decision_id, req, decision.reasons)
     return PayResponse(decision_id=decision_id, verdict=decision.verdict, status=status,
                        reasons=decision.reasons, payout_batch_id=batch_id)
 
@@ -59,7 +56,7 @@ def pay(req: PaymentRequest):
 def decisions():
     return store.list_entries()
 
-@app.post("/decisions/{decision_id}/approve", dependencies=[Depends(require_admin)])
+@app.post("/decisions/{decision_id}/approve", dependencies=[Depends(auth.require_admin)])
 def approve(decision_id: int, trust: bool = False):
     row = store.get(decision_id)
     if row is None:
@@ -79,7 +76,7 @@ def approve(decision_id: int, trust: bool = False):
         store.add_vendor(row["vendor_name"], row["payee_email"])
     return {"decision_id": decision_id, "status": "paid", "payout_batch_id": batch_id}
 
-@app.post("/decisions/{decision_id}/reject", dependencies=[Depends(require_admin)])
+@app.post("/decisions/{decision_id}/reject", dependencies=[Depends(auth.require_admin)])
 def reject(decision_id: int):
     if not store.reject_pending(decision_id):
         raise HTTPException(status_code=409, detail="Only pending decisions can be rejected")
@@ -89,8 +86,30 @@ def reject(decision_id: int):
 def vendors():
     return store.list_vendors()
 
-@app.post("/vendors", dependencies=[Depends(require_admin)])
+@app.post("/vendors", dependencies=[Depends(auth.require_admin)])
 def create_vendor(v: VendorIn):
     if not store.add_vendor(v.name, v.payee_email):
         raise HTTPException(status_code=409, detail="Vendor already exists")
     return store.get_vendor(v.name)
+
+@app.post("/auth/login")
+def login(body: LoginIn, response: Response):
+    if not auth.token_ok(body.token):
+        raise HTTPException(status_code=401, detail="Wrong admin token")
+    response.set_cookie(auth.COOKIE, auth.make_session(), max_age=auth.TTL,
+                        httponly=True, samesite="strict",
+                        secure=config.PUBLIC_URL.startswith("https"))
+    return {"admin": True}
+
+@app.post("/auth/logout")
+def logout(response: Response):
+    response.delete_cookie(auth.COOKIE)
+    return {"admin": False}
+
+@app.get("/auth/me")
+def me(guard_session: str = Cookie(default=""), x_admin_token: str = Header(default="")):
+    return {"admin": auth.is_admin(guard_session, x_admin_token)}
+
+@app.get("/decisions")
+def decisions(limit: int = Query(200, ge=1, le=500)):
+    return store.list_entries(limit)

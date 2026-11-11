@@ -36,3 +36,6 @@ class PayResponse(BaseModel):             # what we send back
 class VendorIn(BaseModel):
     name: str = Field(min_length=1, max_length=100)
     payee_email: str = Field(min_length=3, max_length=254)
+
+class LoginIn(BaseModel):
+    token: str = Field(min_length=1, max_length=200)

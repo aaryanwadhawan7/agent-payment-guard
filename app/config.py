@@ -20,3 +20,7 @@ DB_PATH = "guard.db"
 GROQ_KEY = os.getenv("GROQ_API_KEY")
 GROQ_API_KEY = os.getenv('GROQ_API_KEY', GROQ_KEY)
 GROQ_MODEL = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")
+
+AGENT_API_KEY = os.environ["AGENT_API_KEY"]
+ZAPIER_WEBHOOK_URL = os.getenv("ZAPIER_WEBHOOK_URL", "")
+PUBLIC_URL = os.getenv("PUBLIC_URL", "http://127.0.0.1:8000")

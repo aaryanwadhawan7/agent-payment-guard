@@ -1,9 +1,10 @@
 const COLOR = { allow:"green", paid:"green", needs_approval:"amber", pending:"amber",
                 block:"red", blocked:"red", rejected:"gray", processing:"blue" };
 const usd = n => new Intl.NumberFormat("en-US", { style:"currency", currency:"USD" }).format(n);
+const loginForm = document.getElementById("login-form");
+const adminBar = document.getElementById("admin-bar");
 const tokenBox = document.getElementById("token");
-tokenBox.value = sessionStorage.getItem("adminToken") || "";
-tokenBox.oninput = () => sessionStorage.setItem("adminToken", tokenBox.value);
+let isAdmin = false;
 
 // textContent (not innerHTML) so text from an agent can never inject HTML
 function pillRenderer(p) {
@@ -16,9 +17,14 @@ function pillRenderer(p) {
 function actionRenderer(p) {
   const box = document.createElement("span");
   if (!p.data || p.data.status !== "pending") return box;
+  if (!isAdmin) {
+    box.className = "hint";
+    box.textContent = "Sign in to approve";
+    return box;
+  }
   [["Approve", "approve", "approve"],
-  ["Approve + trust vendor", "approve?trust=true", "approve"],
-  ["Reject", "reject", "reject"]].forEach(([label, path, cls]) => {
+   ["Approve + trust vendor", "approve?trust=true", "approve"],
+   ["Reject", "reject", "reject"]].forEach(([label, path, cls]) => {
     const b = document.createElement("button");
     b.className = "btn " + cls;
     b.textContent = label;
@@ -28,13 +34,12 @@ function actionRenderer(p) {
   return box;
 }
 
-async function act(id, action) {
-  const r = await fetch(`/decisions/${id}/${action}`, {
-    method: "POST", headers: { "X-Admin-Token": tokenBox.value }
-  });
+async function act(id, path) {
+  const r = await fetch(`/decisions/${id}/${path}`, { method: "POST" });   // the cookie is sent automatically
   if (!r.ok) {
     const e = await r.json().catch(() => ({}));
     alert(e.detail || "Request failed");
+    if (r.status === 401) refreshAuth();
   }
   load();
 }
@@ -51,7 +56,7 @@ const gridApi = agGrid.createGrid(document.getElementById("grid"), {
     { field: "reasons", flex: 1.4, minWidth: 260,
       valueFormatter: p => (p.value || []).join(" • "),
       tooltipValueGetter: p => (p.value || []).join("\n") },
-    { colId: "actions", headerName: "Action", width: 370, sortable: false, filter: false,
+    { colId: "actions", headerName: "Action", width: 330, sortable: false, filter: false,
       valueGetter: p => p.data && p.data.status, cellRenderer: actionRenderer }
   ],
   defaultColDef: { sortable: true, filter: true, resizable: true },
@@ -64,7 +69,6 @@ function stat(rows, statuses) {
   const f = rows.filter(r => statuses.includes(r.status));
   return { n: f.length, sum: f.reduce((a, r) => a + Number(r.amount), 0) };
 }
-
 function setText(id, text) { document.getElementById(id).textContent = text; }
 
 async function load() {
@@ -79,5 +83,30 @@ async function load() {
   setText("protected-m", usd(bad.sum));
 }
 
+async function refreshAuth() {
+  const r = await fetch("/auth/me");
+  isAdmin = (await r.json()).admin;
+  loginForm.hidden = isAdmin;
+  adminBar.hidden = !isAdmin;
+  gridApi.refreshCells({ columns: ["actions"], force: true });   // redraw the buttons
+}
+
+loginForm.onsubmit = async e => {
+  e.preventDefault();
+  const r = await fetch("/auth/login", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ token: tokenBox.value })
+  });
+  tokenBox.value = "";
+  if (!r.ok) alert("Wrong admin token");
+  refreshAuth();
+};
+
+document.getElementById("logout").onclick = async () => {
+  await fetch("/auth/logout", { method: "POST" });
+  refreshAuth();
+};
+
 load();
+refreshAuth();
 setInterval(load, 3000);

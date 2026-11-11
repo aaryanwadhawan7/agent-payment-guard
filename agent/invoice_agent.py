@@ -30,7 +30,7 @@ def pay_invoice(mode, source_text = None, **args):
     args.setdefault("currency", "USD")
     if mode == "protected":
         args["source_text"] = source_text          # set by OUR code, not by the LLM
-        return httpx.post(f"{GUARD_URL}/pay", json=args, timeout=30).json()
+        return httpx.post(f"{GUARD_URL}/pay", json=args, timeout=30, headers={"X-API-Key": os.environ["AGENT_API_KEY"]}).json()
     from app import paypal_client                 # unprotected: straight to PayPal
     from app.models import PaymentRequest
     batch = paypal_client.send_payout(PaymentRequest(**args))

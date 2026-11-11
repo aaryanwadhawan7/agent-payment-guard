@@ -1,5 +1,6 @@
 <!doctype html>
 <html lang="en">
+
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -9,6 +10,7 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community@32.3.3/styles/ag-theme-quartz.css">
   <link rel="stylesheet" href="/static/styles.css">
 </head>
+
 <body>
   <div class="wrap">
     <header>
@@ -16,14 +18,39 @@
         <h1>Agent Payment Guard</h1>
         <div class="sub">Every AI-agent payment is checked before PayPal sees it.</div>
       </div>
-      <input id="token" class="token" type="password" placeholder="Admin token to approve / reject">
+      <div id="auth">
+        <form id="login-form" class="login">
+          <input id="token" class="token" type="password" placeholder="Admin token" autocomplete="current-password">
+          <button class="btn approve" type="submit">Sign in</button>
+        </form>
+        <div id="admin-bar" class="login" hidden>
+          <span class="pill green">Admin signed in</span>
+          <button id="logout" class="btn reject" type="button">Sign out</button>
+        </div>
+      </div>
     </header>
 
     <section class="cards">
-      <div class="card"><div class="label">Paid</div><div class="value" id="paid-n">0</div><div class="money" id="paid-m"></div></div>
-      <div class="card"><div class="label">Awaiting approval</div><div class="value" id="pending-n">0</div><div class="money" id="pending-m"></div></div>
-      <div class="card"><div class="label">Blocked / rejected</div><div class="value" id="blocked-n">0</div><div class="money" id="blocked-m"></div></div>
-      <div class="card"><div class="label">Money protected</div><div class="value" id="protected-m">$0</div><div class="money">blocked + rejected</div></div>
+      <div class="card">
+        <div class="label">Paid</div>
+        <div class="value" id="paid-n">0</div>
+        <div class="money" id="paid-m"></div>
+      </div>
+      <div class="card">
+        <div class="label">Awaiting approval</div>
+        <div class="value" id="pending-n">0</div>
+        <div class="money" id="pending-m"></div>
+      </div>
+      <div class="card">
+        <div class="label">Blocked / rejected</div>
+        <div class="value" id="blocked-n">0</div>
+        <div class="money" id="blocked-m"></div>
+      </div>
+      <div class="card">
+        <div class="label">Money protected</div>
+        <div class="value" id="protected-m">$0</div>
+        <div class="money">blocked + rejected</div>
+      </div>
     </section>
 
     <div id="grid" class="ag-theme-quartz"></div>
@@ -32,4 +59,5 @@
   <script src="https://cdn.jsdelivr.net/npm/ag-grid-community@32.3.3/dist/ag-grid-community.min.js"></script>
   <script src="/static/app.js"></script>
 </body>
+
 </html>
