@@ -110,3 +110,34 @@ document.getElementById("logout").onclick = async () => {
 load();
 refreshAuth();
 setInterval(load, 3000);
+
+const labBtn = document.getElementById("lab-run");
+labBtn.onclick = async () => {
+  labBtn.disabled = true;
+  labBtn.textContent = "Agent is working…";
+  const head = document.getElementById("lab-headline");
+  try {
+    const r = await fetch("/demo/run", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ scenario: document.getElementById("lab-scenario").value,
+                             mode: document.getElementById("lab-mode").value })
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.detail || "Request failed");
+    document.getElementById("lab-invoice").textContent = d.invoice;
+    head.className = "lab-headline " + d.level;
+    head.textContent = d.headline;
+    document.getElementById("lab-agent").textContent =
+      d.agent_request ? "Agent's payment request: " + JSON.stringify(d.agent_request) : "";
+    document.getElementById("lab-reasons").textContent = (d.reasons || []).join(" • ");
+  } catch (e) {
+    document.getElementById("lab-invoice").textContent = "";
+    head.className = "lab-headline warn";
+    head.textContent = e.message;
+  } finally {
+    document.getElementById("lab-out").hidden = false;
+    labBtn.disabled = false;
+    labBtn.textContent = "Run agent";
+    load();
+  }
+};

@@ -34,3 +34,14 @@ h1 { font-size:26px; margin:0; font-weight:700; letter-spacing:-.02em; }
 .login { display:flex; gap:8px; align-items:center; }
 .hint { color:var(--muted); font-size:12px; }
 [hidden] { display:none !important; }
+
+.lab { background:rgba(20,25,34,.85); border:1px solid var(--line); border-radius:16px; padding:16px 18px; margin-bottom:20px; }
+.lab-head { display:flex; gap:12px; align-items:baseline; margin-bottom:10px; }
+.lab-head h2 { margin:0; font-size:16px; }
+.lab-controls { display:flex; gap:10px; flex-wrap:wrap; }
+.lab select { background:rgba(255,255,255,.06); border:1px solid var(--line); color:var(--text); padding:8px 12px; border-radius:10px; }
+#lab-out pre { background:#0f141c; border:1px solid var(--line); border-radius:10px; padding:12px; font-size:12px; white-space:pre-wrap; margin:12px 0; }
+.lab-headline { font-weight:600; padding:10px 12px; border-radius:10px; }
+.lab-headline.safe   { background:rgba(52,211,153,.15); color:#34d399; }
+.lab-headline.warn   { background:rgba(251,191,36,.15); color:#fbbf24; }
+.lab-headline.danger { background:rgba(248,113,113,.15); color:#f87171; }

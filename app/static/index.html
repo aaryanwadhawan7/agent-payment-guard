@@ -53,6 +53,32 @@
       </div>
     </section>
 
+    <section class="lab">
+      <div class="lab-head">
+        <h2>Demo lab</h2>
+        <span class="hint">An AI agent reads an invoice and tries to pay it.</span>
+      </div>
+      <div class="lab-controls">
+        <select id="lab-scenario">
+          <option value="legit">Legit invoice</option>
+          <option value="tampered">Tampered invoice (changed bank details)</option>
+          <option value="injection">Hidden prompt injection</option>
+          <option value="new_vendor">New vendor (needs a human)</option>
+        </select>
+        <select id="lab-mode">
+          <option value="unprotected">Without the guard (simulated)</option>
+          <option value="protected">Through the guard</option>
+        </select>
+        <button id="lab-run" class="btn approve" type="button">Run agent</button>
+      </div>
+      <div id="lab-out" hidden>
+        <pre id="lab-invoice"></pre>
+        <div id="lab-headline" class="lab-headline"></div>
+        <div id="lab-agent" class="hint"></div>
+        <div id="lab-reasons" class="hint"></div>
+      </div>
+    </section>
+
     <div id="grid" class="ag-theme-quartz"></div>
   </div>
 
